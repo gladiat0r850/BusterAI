@@ -1,13 +1,15 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, LoaderCircle } from "lucide-react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { IUser } from "@/app/auth/page"
 import { useRouter } from "next/navigation"
+import { Toaster } from "./ui/toaster"
+import { useToast } from "@/hooks/use-toast"
 export function SecuritySettings() {
   const [passwords, setPasses] = useState({
     password: '',
@@ -18,6 +20,7 @@ export function SecuritySettings() {
   const [currentUser, setCurrentUser] = useState<IUser | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const {toast} = useToast()
 
   const verifyToken = async () => {
       const res = await fetch('http://localhost:4000/verify-token', {
@@ -52,15 +55,30 @@ export function SecuritySettings() {
         },
         body: JSON.stringify({...passwords, id: currentUser?.id})
       })
+      setPasses({password: '', newPassword: ''})
+      toast({
+        variant: "default",
+        title: 'Succesfully changed your password!',
+        description: "Be sure to remember it when signing in!",
+      })
     }catch(error){
       console.log(error)
+      toast({
+        variant: "default",
+        title: 'Password update failed.',
+        description: "Something went wrong.",
+      })
     }
     finally{
       setIsLoading(false)
     }
   }
+  useEffect(() => {
+    console.log(isLoading)
+  }, [isLoading])
 
-  return (
+  return <>
+  <Toaster />
     <Card>
       <CardHeader>
         <CardTitle>Password</CardTitle>
@@ -110,8 +128,8 @@ export function SecuritySettings() {
         </div>
       </CardContent>
       <CardFooter>
-        <Button onClick={() => currentUser?.id && changePassword(currentUser?.id)} className="bg-blue-600 hover:bg-blue-700">Update password</Button>
+        <Button disabled={isLoading || currentUser?.password == passwords.newPassword || passwords.newPassword.length < 8} onClick={() => currentUser?.id && changePassword(currentUser?.id)} className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2">{!isLoading ? 'Update password' : 'Updating password'} {isLoading && <LoaderCircle className="text-white animate-spin ml-2 h-5" />}</Button>
       </CardFooter>
     </Card>
-  )
+  </>
 }

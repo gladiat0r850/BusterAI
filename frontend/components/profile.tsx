@@ -4,19 +4,24 @@ import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
 import { motion } from "framer-motion"
-import { User, Upload } from "lucide-react"
+import { User, Upload, LoaderCircle } from "lucide-react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { IUser } from "@/app/auth/page"
+import { useToast } from "@/hooks/use-toast"
+import { Toaster } from "./ui/toaster"
+
 
 export function ProfileSettings() {
   const [currentUser, setCurrentUser] = useState<IUser | null>(null)
   const [username, setUsername] = useState(currentUser?.name)
   const [profileImage, setProfileImage] = useState(currentUser?.profileImage)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const {toast} = useToast()
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -49,18 +54,36 @@ export function ProfileSettings() {
     fileInputRef.current?.click()
   }
   async function changeProfile(id: string){
-    const res = await fetch(`http://localhost:4000/change-profile/${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({username, profileImage})
-    })
-      const response = await res.json()
-      console.log(response)
-      setCurrentUser(response)
+    try{
+      setIsLoading(true)
+      const res = await fetch(`http://localhost:4000/change-profile/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({username, profileImage})
+      })
+        const response = await res.json()
+        console.log(response)
+        setCurrentUser(response)
+        toast({
+          variant: "default",
+          title: 'Success!',
+          description: "Your profile has succesfully been updated."
+        })
+    }catch(error){
+      console.error(error)
+      toast({
+        variant: "default",
+        title: 'Profile update failed.',
+        description: "Something went wrong.",
+      })
+    }finally{
+      setIsLoading(false)
+    }
   }
-  return (
+  return <>
+    <Toaster/>
     <Card>
       <CardHeader>
         <CardTitle>Profile</CardTitle>
@@ -103,8 +126,8 @@ export function ProfileSettings() {
         </div>
       </CardContent>
       <CardFooter>
-        <Button onClick={() => currentUser?.id && changeProfile(currentUser?.id)} className="bg-blue-600 hover:bg-blue-700">Save changes</Button>
+        <Button disabled={username?.length <= 4 || isLoading || (currentUser?.name == username && profileImage == currentUser?.profileImage)} onClick={() => currentUser?.id && changeProfile(currentUser?.id)} className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2">{!isLoading ? 'Save changes' : 'Saving changes'} {isLoading && <LoaderCircle className="text-white animate-spin ml-2 h-5" />}</Button>
       </CardFooter>
     </Card>
-  )
+  </>
 }

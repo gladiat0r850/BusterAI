@@ -181,6 +181,13 @@ export function Navbar() {
                             <LogOut className="mr-2 h-4 w-4" />
                             <span>Sign out</span>
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem asChild>
+                            <Link href="/settings" className="flex items-center">
+                              <User className="mr-2 h-4 w-4" />
+                              <span className='font-semibold'>{currentUser.name}</span>
+                            </Link>
+                          </DropdownMenuItem>
                         </motion.div>
                       </DropdownMenuContent>
                     )}
