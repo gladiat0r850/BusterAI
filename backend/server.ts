@@ -37,27 +37,40 @@ app.post('/chat', async (req: Request, res: Response) => {
   try {
     const { message, id} = req.body as { message: string; id: string };
     const user: any = await mongo.findOne({id})
-    const model: GenerativeModel = genAI.getGenerativeModel({ model: `gemini-2.0-${user?.hourlyLimit == 0 ? 'flash-lite' : 'flash'}` });
+    // const model: GenerativeModel = genAI.getGenerativeModel({ model: `gemini-2.0-${user?.hourlyLimit == 0 ? 'flash-lite' : 'flash'}` });
     if (!message) {
       return res.status(400).json({ error: 'Message and sessionId are required' });
     }
 
-    const systemMessage = `
-      You are a homework help assistant named Buster, provide moderate sized and detailed answers. Only respond to questions related to school subjects such as math, science, history, or assignments, respond to even the most basic things about them. 
-    `;
+    const AIResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer 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`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        "model": `x-ai/grok-4-fast:free`,
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": message
+              }
+            ]
+          }
+        ]
+      })
+    });
+    const response: any = await AIResponse.json()
 
-    let chatContext = `${systemMessage}\n\nUser: ${message}\n`;
-
-    for (const msg of user.chatHistory) {
-      chatContext += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n`;
-    }
-
-    const result = await model.generateContent(chatContext);
-    const response = result.response.text().replace(/\*/g, '');
+    // const result = await model.generateContent(chatContext);
+    // const response = result.response.text().replace(/\*/g, ''); 
 
     if(currentUser?.chatHistory){
       user.chatHistory.push({ role: 'user', content: message, time: new Date(), id: user.chatHistory.length });
-      user.chatHistory.push({ role: 'assistant', content: response, time: new Date(), id: user.chatHistory.length });
+      user.chatHistory.push({ role: 'assistant', content: response.choices[0].message.content, time: new Date(), id: user.chatHistory.length });
     }
     let decrementedAIUses = user.hourlyLimit !== 0 && user.hourlyLimit - 1
     user.hourlyLimit = decrementedAIUses

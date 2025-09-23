@@ -86,15 +86,13 @@ export default function ModernChat() {
           })
         });
         const data = await response.json();
-        if(data.message){
           const AIMessage: Message = {
             role: 'assistant',
-            content: data.message,
+            content: data.choices[0].message.content,
             timestamp: new Date(),
             id: messages.length
           }
           setMessages((prev) => [...prev, AIMessage]);
-        }
         setIsLoading(true);
         setInput('');
       }
